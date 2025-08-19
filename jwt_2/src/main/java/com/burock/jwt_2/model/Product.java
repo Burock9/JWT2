@@ -23,6 +23,9 @@ public class Product {
     @Min(0)
     private double price;
 
+    @Min(0)
+    private int stock;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "category_id")
     private Category category;
