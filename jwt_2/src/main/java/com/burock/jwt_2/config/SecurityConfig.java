@@ -31,10 +31,11 @@ public class SecurityConfig {
         return http.csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/products/**", "/categories/**").permitAll().anyRequest()
-                        .authenticated())
+                        .requestMatchers("/products/**", "/categories/**").authenticated()
+                        .anyRequest().authenticated())
                 .authenticationProvider(daoAuthProvider())
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class).build();
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
     }
 
     @Bean
