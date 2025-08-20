@@ -6,11 +6,11 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.burock.jwt_2.model.Cart;
-import com.burock.jwt_2.model.CartItem;
+import com.burock.jwt_2.model.CartLine;
 import com.burock.jwt_2.model.Product;
 
-public interface CartItemRepository extends JpaRepository<CartItem, Long> {
-    Optional<CartItem> findByCartAndProduct(Cart cart, Product product);
+public interface CartItemRepository extends JpaRepository<CartLine, Long> {
+    Optional<CartLine> findByCartAndProduct(Cart cart, Product product);
 
-    List<CartItem> findByCart(Cart cart);
+    List<CartLine> findByCart(Cart cart);
 }

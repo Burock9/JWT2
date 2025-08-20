@@ -10,7 +10,7 @@ import com.burock.jwt_2.dto.AddToCartRequest;
 import com.burock.jwt_2.dto.CartItemResponse;
 import com.burock.jwt_2.dto.CartResponse;
 import com.burock.jwt_2.model.Cart;
-import com.burock.jwt_2.model.CartItem;
+import com.burock.jwt_2.model.CartLine;
 import com.burock.jwt_2.model.Product;
 import com.burock.jwt_2.model.User;
 import com.burock.jwt_2.repository.CartItemRepository;
@@ -39,8 +39,8 @@ public class CartService {
         Cart cart = cartRepository.findByUser(user)
                 .orElseGet(() -> cartRepository.save(Cart.builder().user(user).build()));
 
-        CartItem cartItem = cartItemRepository.findByCartAndProduct(cart, product)
-                .orElse(CartItem.builder().cart(cart).product(product).quantity(0).build());
+        CartLine cartItem = cartItemRepository.findByCartAndProduct(cart, product)
+                .orElse(CartLine.builder().cart(cart).product(product).quantity(0).build());
         cartItem.setQuantity(cartItem.getQuantity() + request.getQuantity());
 
         cartItemRepository.save(cartItem);
@@ -62,7 +62,7 @@ public class CartService {
 
         Product product = productRepository.findById(productId).orElseThrow(() -> new RuntimeException("Ürün Bulunamadı."));
 
-        CartItem cartItem = cartItemRepository.findByCartAndProduct(cart, product).orElseThrow(() -> new RuntimeException("Ürün Sepette Değil."));
+        CartLine cartItem = cartItemRepository.findByCartAndProduct(cart, product).orElseThrow(() -> new RuntimeException("Ürün Sepette Değil."));
 
         cartItemRepository.delete(cartItem);
     }

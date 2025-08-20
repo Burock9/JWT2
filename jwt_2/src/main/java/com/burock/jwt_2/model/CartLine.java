@@ -9,7 +9,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CartItem {
+public class CartLine {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
