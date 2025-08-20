@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class ProductService {
-    
+
     private final ProductRepository repo;
 
     public List<Product> getAll() {
@@ -25,7 +25,7 @@ public class ProductService {
     }
 
     // Sadece Admin
-    
+
     @PreAuthorize("hasRole('ADMIN')")
     public Product create(Product p) {
         return repo.save(p);
@@ -37,6 +37,7 @@ public class ProductService {
         ep.setName(p.getName());
         ep.setPrice(p.getPrice());
         ep.setCategory(p.getCategory());
+        ep.setStock(p.getStock());
         return repo.save(ep);
     }
 

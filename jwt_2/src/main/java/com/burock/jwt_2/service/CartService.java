@@ -47,7 +47,7 @@ public class CartService {
     }
 
     public CartResponse getCart(User user) {
-        Cart cart = cartRepository.findByUser(user).orElseThrow(() -> new RuntimeException("Sepet Bulunumadı."));
+        Cart cart = cartRepository.findByUser(user).orElseThrow(() -> new RuntimeException("Sepet Bulunamadı."));
 
         List<CartItemResponse> items = cartItemRepository.findByCart(cart).stream()
                 .map(ci -> new CartItemResponse(ci.getProduct().getId(), ci.getProduct().getName(), ci.getQuantity(),
