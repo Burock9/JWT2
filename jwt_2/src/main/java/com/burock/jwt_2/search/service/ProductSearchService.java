@@ -29,6 +29,10 @@ public class ProductSearchService {
         return productSearchRepository.findAll(pageable);
     }
 
+    public ProductIndex getById(Long id) {
+        return productSearchRepository.findById(id.toString()).orElseThrow(() -> new RuntimeException("Ürün Bulunamadı:"+ id));
+    }
+
     public Page<ProductIndex> search(String q, Pageable pageable) {
         return productSearchRepository.searchByText(q, pageable);
     }
