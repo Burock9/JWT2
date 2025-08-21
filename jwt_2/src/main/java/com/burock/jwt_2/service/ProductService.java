@@ -4,17 +4,21 @@ import java.util.List;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.burock.jwt_2.model.Product;
 import com.burock.jwt_2.repository.ProductRepository;
+import com.burock.jwt_2.search.service.ProductSearchService;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ProductService {
 
     private final ProductRepository repo;
+    private final ProductSearchService productSearchService;
 
     public List<Product> getAll() {
         return repo.findAll();
@@ -28,7 +32,10 @@ public class ProductService {
 
     @PreAuthorize("hasRole('ADMIN')")
     public Product create(Product p) {
-        return repo.save(p);
+
+        Product saved = repo.save(p);
+        productSearchService.indexProduct(saved);
+        return saved;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -38,11 +45,14 @@ public class ProductService {
         ep.setPrice(p.getPrice());
         ep.setCategory(p.getCategory());
         ep.setStock(p.getStock());
-        return repo.save(ep);
+        Product saved = repo.save(p);
+        productSearchService.indexProduct(saved);
+        return saved;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     public void delete(Long id) {
         repo.deleteById(id);
+        productSearchService.deleteFromIndex(id);
     }
 }
