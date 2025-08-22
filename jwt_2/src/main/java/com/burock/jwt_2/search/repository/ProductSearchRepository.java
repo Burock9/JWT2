@@ -23,4 +23,28 @@ public interface ProductSearchRepository extends ElasticsearchRepository<Product
     Page<ProductIndex> searchByText(String q, Pageable pageable);
 
     Page<ProductIndex> findByCategoryId(String categoryId, Pageable pageable);
+
+    @Query("""
+            {
+                "range:{
+                    "price": {
+                        "gte": ?0,
+                        "lte": ?1
+                    }
+                }
+            }
+            """)//gte: >= , lte: <=
+
+    Page<ProductIndex> findByPriceBetween(double minPrice, double maxPrice, Pageable pageable);
+
+    @Query("""
+            {
+                "range": { 
+                    "stock": {
+                        "gt": 0
+                    }
+                }
+            }
+            """) // gt:Greater than(büyük)
+    Page<ProductIndex> findInStock(Pageable pageable);
 }

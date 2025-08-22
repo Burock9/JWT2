@@ -44,4 +44,12 @@ public class ProductSearchService {
     public void deleteFromIndex(Long productId) {
         productSearchRepository.deleteById(productId.toString());
     }
+
+    public Page<ProductIndex> findByPriceRange(double minPrice, double maxPrice, Pageable pageable) {
+        return productSearchRepository.findByPriceBetween(minPrice, maxPrice, pageable);
+    }
+
+    public Page<ProductIndex> findInStock(Pageable pageable) {
+        return productSearchRepository.findInStock(pageable);
+    }
 }

@@ -1,5 +1,7 @@
 package com.burock.jwt_2.controller;
 
+import java.lang.annotation.Repeatable;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +18,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.burock.jwt_2.model.Product;
 import com.burock.jwt_2.search.model.ProductIndex;
-import com.burock.jwt_2.search.service.ProductSearchService;
 import com.burock.jwt_2.service.ProductService;
 
 import jakarta.validation.Valid;
@@ -28,20 +29,21 @@ import lombok.RequiredArgsConstructor;
 public class ProductController {
 
     private final ProductService service;
-    private final ProductSearchService productSearchService;
-
     // Herkes
 
     @GetMapping
-    public ResponseEntity<Page<ProductIndex>> getAllFromElastic(@RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<Page<ProductIndex>> getAllProducts(
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(productSearchService.getAll(PageRequest.of(page, size)));
+        return ResponseEntity.ok(service.getAll(PageRequest.of(page, size)));
     }
 
     @GetMapping("/search")
-    public ResponseEntity<Page<ProductIndex>> search(@RequestParam String q, @RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<Page<ProductIndex>> searchProducts(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(productSearchService.search(q, PageRequest.of(page, size)));
+        return ResponseEntity.ok(service.searchProducts(q, PageRequest.of(page, size)));
     }
 
     // Admin
@@ -63,5 +65,34 @@ public class ProductController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<Page<ProductIndex>> getProductsByCategory(
+            @PathVariable Long categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(service.getProductsByCategory((categoryId), PageRequest.of(page, size)));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ProductIndex> getProductById(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getById(id));
+    }
+
+    @GetMapping("/price-range")
+    public ResponseEntity<Page<ProductIndex>> getProductsByPriceRange(
+            @RequestParam double minPrice,
+            @RequestParam double maxPrice,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(service.findByPriceRange(minPrice, maxPrice, PageRequest.of(page, size)));
+    }
+
+    @GetMapping("/in-stock")
+    public ResponseEntity<Page<ProductIndex>> getInStockProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(service.findInStock(PageRequest.of(page, size)));
     }
 }
