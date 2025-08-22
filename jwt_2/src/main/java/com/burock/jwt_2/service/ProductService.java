@@ -1,40 +1,60 @@
 package com.burock.jwt_2.service;
 
-import java.util.List;
-
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.burock.jwt_2.model.Category;
 import com.burock.jwt_2.model.Product;
+import com.burock.jwt_2.repository.CategoryRepository;
 import com.burock.jwt_2.repository.ProductRepository;
 import com.burock.jwt_2.search.model.ProductIndex;
 import com.burock.jwt_2.search.service.ProductSearchService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class ProductService {
 
     private final ProductRepository repo;
     private final ProductSearchService productSearchService;
+    private final CategoryRepository categoryRepo;
 
-    public List<ProductIndex> getAll() {
-        return productSearchService.getAll(PageRequest.of(0, 100)).getContent();
+    public Page<ProductIndex> getAll(Pageable pageable) {
+        log.info("Tüm ürünler Elasticsearch ile getiriliyor...");
+        return productSearchService.getAll(pageable);
     }
 
     public ProductIndex getById(Long id) {
+        log.info("{} Id'li ürün Elasticsearch ile getiriliyor...", id);
         return productSearchService.getById(id);
+    }
+
+    public Page<ProductIndex> searchProducts(String query, Pageable pageable) {
+        log.info("Ürünler sırayla aranıyor: '{}'", query);
+        return productSearchService.search(query, pageable);
+    }
+
+    public Page<ProductIndex> getProductsByCategory(Long categoryId, Pageable pageable) {
+        log.info("Ürünler kategoriye göre getiriliyor: {}", categoryId);
+        return productSearchService.byCategory(categoryId, pageable);
     }
 
     // Sadece Admin
 
     @PreAuthorize("hasRole('ADMIN')")
     public Product create(Product p) {
-
+        if (p.getCategory() != null && p.getCategory().getId() != null) {
+            Category fullCategory = categoryRepo.findById(p.getCategory().getId())
+                    .orElseThrow(() -> new RuntimeException("Kategori bulunamadı: " + p.getCategory().getId()));
+            p.setCategory(fullCategory);
+        }
         Product saved = repo.save(p);
         productSearchService.indexProduct(saved);
         return saved;
