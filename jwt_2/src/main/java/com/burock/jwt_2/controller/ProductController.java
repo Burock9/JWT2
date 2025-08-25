@@ -1,7 +1,5 @@
 package com.burock.jwt_2.controller;
 
-import java.lang.annotation.Repeatable;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
