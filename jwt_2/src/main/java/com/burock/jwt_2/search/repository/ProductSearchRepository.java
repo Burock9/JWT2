@@ -26,20 +26,20 @@ public interface ProductSearchRepository extends ElasticsearchRepository<Product
 
     @Query("""
             {
-                "range:{
+                "range": {
                     "price": {
                         "gte": ?0,
                         "lte": ?1
                     }
                 }
             }
-            """)//gte: >= , lte: <=
+            """) // gte: >= , lte: <=
 
     Page<ProductIndex> findByPriceBetween(double minPrice, double maxPrice, Pageable pageable);
 
     @Query("""
             {
-                "range": { 
+                "range": {
                     "stock": {
                         "gt": 0
                     }
