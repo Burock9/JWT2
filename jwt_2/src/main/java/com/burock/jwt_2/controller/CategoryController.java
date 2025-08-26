@@ -14,9 +14,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.burock.jwt_2.dto.ApiResponse;
 import com.burock.jwt_2.model.Category;
 import com.burock.jwt_2.search.model.CategoryIndex;
 import com.burock.jwt_2.service.CategoryService;
+import com.burock.jwt_2.service.MessageService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class CategoryController {
 
     private final CategoryService service;
+    private final MessageService messageService;
 
     // Herkes
 
@@ -57,20 +60,46 @@ public class CategoryController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<Category> createCategory(@Valid @RequestBody Category c) {
-        return ResponseEntity.ok(service.create(c));
+    public ResponseEntity<ApiResponse<Category>> createCategory(@Valid @RequestBody Category c) {
+        try {
+            Category createdCategory = service.create(c);
+            return ResponseEntity.ok(new ApiResponse<>(
+                    messageService.getMessage("category.created"),
+                    createdCategory));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(
+                    messageService.getMessage("error"),
+                    null));
+        }
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<Category> updateCategory(@PathVariable Long id, @Valid @RequestBody Category c) {
-        return ResponseEntity.ok(service.update(id, c));
+    public ResponseEntity<ApiResponse<Category>> updateCategory(@PathVariable Long id, @Valid @RequestBody Category c) {
+        try {
+            Category updatedCategory = service.update(id, c);
+            return ResponseEntity.ok(new ApiResponse<>(
+                    messageService.getMessage("category.updated"),
+                    updatedCategory));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(
+                    messageService.getMessage("category.not.found"),
+                    null));
+        }
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
-        service.delete(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Long id) {
+        try {
+            service.delete(id);
+            return ResponseEntity.ok(new ApiResponse<>(
+                    messageService.getMessage("category.deleted"),
+                    null));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(
+                    messageService.getMessage("category.not.found"),
+                    null));
+        }
     }
 }

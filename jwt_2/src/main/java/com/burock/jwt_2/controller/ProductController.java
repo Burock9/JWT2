@@ -14,8 +14,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.burock.jwt_2.dto.ApiResponse;
 import com.burock.jwt_2.model.Product;
 import com.burock.jwt_2.search.model.ProductIndex;
+import com.burock.jwt_2.service.MessageService;
 import com.burock.jwt_2.service.ProductService;
 
 import jakarta.validation.Valid;
@@ -27,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class ProductController {
 
     private final ProductService service;
+    private final MessageService messageService;
     // Herkes
 
     @GetMapping
@@ -48,21 +51,47 @@ public class ProductController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<Product> create(@Valid @RequestBody Product p) {
-        return ResponseEntity.ok(service.create(p));
+    public ResponseEntity<ApiResponse<Product>> create(@Valid @RequestBody Product p) {
+        try {
+            Product createdProduct = service.create(p);
+            return ResponseEntity.ok(new ApiResponse<>(
+                    messageService.getMessage("product.created"),
+                    createdProduct));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(
+                    messageService.getMessage("error"),
+                    null));
+        }
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<Product> update(@PathVariable Long id, @Valid @RequestBody Product p) {
-        return ResponseEntity.ok(service.update(id, p));
+    public ResponseEntity<ApiResponse<Product>> update(@PathVariable Long id, @Valid @RequestBody Product p) {
+        try {
+            Product updatedProduct = service.update(id, p);
+            return ResponseEntity.ok(new ApiResponse<>(
+                    messageService.getMessage("product.updated"),
+                    updatedProduct));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(
+                    messageService.getMessage("product.not.found"),
+                    null));
+        }
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        service.delete(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+        try {
+            service.delete(id);
+            return ResponseEntity.ok(new ApiResponse<>(
+                    messageService.getMessage("product.deleted"),
+                    null));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(
+                    messageService.getMessage("product.not.found"),
+                    null));
+        }
     }
 
     @GetMapping("/category/{categoryId}")

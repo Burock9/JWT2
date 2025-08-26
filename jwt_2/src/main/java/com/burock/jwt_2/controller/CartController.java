@@ -17,10 +17,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.burock.jwt_2.dto.AddToCartRequest;
+import com.burock.jwt_2.dto.ApiResponse;
 import com.burock.jwt_2.dto.CartResponse;
 import com.burock.jwt_2.model.User;
 import com.burock.jwt_2.search.model.CartIndex;
 import com.burock.jwt_2.service.CartService;
+import com.burock.jwt_2.service.MessageService;
 import com.burock.jwt_2.service.UserService;
 
 import lombok.RequiredArgsConstructor;
@@ -32,12 +34,21 @@ public class CartController {
 
     private final CartService cartService;
     private final UserService userService;
+    private final MessageService messageService;
 
     @PostMapping("/add")
-    public ResponseEntity<String> addToCart(@RequestBody AddToCartRequest request, Principal principal) {
-        User user = userService.getByUsernameSecured(principal.getName());
-        cartService.addToCart(user, request);
-        return ResponseEntity.ok("Ürün sepete eklendi.");
+    public ResponseEntity<ApiResponse<String>> addToCart(@RequestBody AddToCartRequest request, Principal principal) {
+        try {
+            User user = userService.getByUsernameSecured(principal.getName());
+            cartService.addToCart(user, request);
+            return ResponseEntity.ok(new ApiResponse<>(
+                    messageService.getMessage("cart.item.added"),
+                    null));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(
+                    messageService.getMessage("error"),
+                    null));
+        }
     }
 
     @GetMapping
@@ -53,10 +64,18 @@ public class CartController {
     }
 
     @DeleteMapping("/remove/{productId}")
-    public ResponseEntity<String> removeFromCart(@PathVariable Long productId, Principal principal) {
-        User user = userService.getByUsernameSecured(principal.getName());
-        cartService.removeFromCart(user, productId);
-        return ResponseEntity.ok("Ürün sepetten kaldırıldı");
+    public ResponseEntity<ApiResponse<String>> removeFromCart(@PathVariable Long productId, Principal principal) {
+        try {
+            User user = userService.getByUsernameSecured(principal.getName());
+            cartService.removeFromCart(user, productId);
+            return ResponseEntity.ok(new ApiResponse<>(
+                    messageService.getMessage("cart.item.removed"),
+                    null));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(
+                    messageService.getMessage("error"),
+                    null));
+        }
     }
 
     @GetMapping("/my-cart/analytics")
@@ -66,7 +85,7 @@ public class CartController {
         if (cart.isPresent()) {
             return ResponseEntity.ok(cart.get());
         } else {
-            throw new RuntimeException("Sepet bulunamadı");
+            throw new RuntimeException(messageService.getMessage("cart.not.found"));
         }
     }
 
