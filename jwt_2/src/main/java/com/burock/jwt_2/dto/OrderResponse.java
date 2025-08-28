@@ -20,6 +20,7 @@ public class OrderResponse {
     private List<OrderItemResponse> orderItems;
     private BigDecimal totalAmount;
     private OrderStatus status;
+    private String statusText; 
     private LocalDateTime orderDate;
     private LocalDateTime deliveryDate;
     private String shippingAddress;

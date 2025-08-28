@@ -43,6 +43,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final OrderSearchService orderSearchService;
+    private final MessageService messageService;
 
     private String generateOrderNumber() {
         return "SIP-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
@@ -55,8 +56,11 @@ public class OrderService {
                         .unitPrice(item.getUnitPrice()).totalPrice(item.getTotalPrice()).build())
                 .collect(Collectors.toList());
 
+        String statusText = messageService.getMessage("order.status." + order.getStatus().name());
+
         return OrderResponse.builder().id(order.getId()).orderNumber(order.getOrderNumber())
                 .orderItems(orderItems).totalAmount(order.getTotalAmount()).status(order.getStatus())
+                .statusText(statusText)
                 .orderDate(order.getOrderDate()).deliveryDate(order.getDeliveryDate())
                 .shippingAddress(order.getShippingAddress()).notes(order.getNotes()).build();
     }
@@ -277,8 +281,10 @@ public class OrderService {
                 .mapToInt(OrderItem::getQuantity)
                 .sum();
 
+        String statusText = messageService.getMessage("order.status." + order.getStatus().name());
+
         return String.format("Sipariş %s: %d ürün, Toplam: %s TL, Durum: %s",
-                order.getOrderNumber(), totalItems, order.getTotalAmount(), order.getStatus());
+                order.getOrderNumber(), totalItems, order.getTotalAmount(), statusText);
     }
 
     public BigDecimal getUserTotalSpending(String username) {
@@ -320,9 +326,12 @@ public class OrderService {
         log.info("Elasticsearch ile sipariş aranıyor: {} (sayfa: {})", query, pageable.getPageNumber());
         Page<OrderResponse> results = orderSearchService.searchOrders(query, pageable)
                 .map(orderIndex -> {
+                    OrderStatus status = OrderStatus.valueOf(orderIndex.getStatus());
+                    String statusText = messageService.getMessage("order.status." + status.name());
+
                     return OrderResponse.builder().id(Long.valueOf(orderIndex.getId()))
                             .orderNumber(orderIndex.getOrderNumber()).totalAmount(orderIndex.getTotalAmount())
-                            .status(OrderStatus.valueOf(orderIndex.getStatus())).orderDate(orderIndex.getOrderDate())
+                            .status(status).statusText(statusText).orderDate(orderIndex.getOrderDate())
                             .deliveryDate(orderIndex.getDeliveryDate()).shippingAddress(orderIndex.getShippingAddress())
                             .notes(orderIndex.getNotes()).build();
                 });
@@ -334,9 +343,12 @@ public class OrderService {
         log.info("Elasticsearch ile sipariş durumuna göre aranıyor: {} (sayfa: {})", status, pageable.getPageNumber());
         Page<OrderResponse> results = orderSearchService.findByStatus(status, pageable)
                 .map(orderIndex -> {
+                    OrderStatus orderStatus = OrderStatus.valueOf(orderIndex.getStatus());
+                    String statusText = messageService.getMessage("order.status." + orderStatus.name());
+
                     return OrderResponse.builder().id(Long.valueOf(orderIndex.getId()))
                             .orderNumber(orderIndex.getOrderNumber()).totalAmount(orderIndex.getTotalAmount())
-                            .status(OrderStatus.valueOf(orderIndex.getStatus())).orderDate(orderIndex.getOrderDate())
+                            .status(orderStatus).statusText(statusText).orderDate(orderIndex.getOrderDate())
                             .deliveryDate(orderIndex.getDeliveryDate()).shippingAddress(orderIndex.getShippingAddress())
                             .notes(orderIndex.getNotes()).build();
                 });

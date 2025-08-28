@@ -1,10 +1,17 @@
 package com.burock.jwt_2.model;
 
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
+
 public enum OrderStatus {
-    PENDING, // BEKLEMEDE
-    CONFIRMED, // ONAYLANDI
-    PROCESSING, // İŞLENİYOR
-    SHIPPED, // KARGOYA VERİLDİ
-    DELIVERED, // TESLİM EDİLDİ
-    CANCELLED // İPTAL EDİLDİ
+    PENDING,
+    CONFIRMED,
+    PROCESSING,
+    SHIPPED,
+    DELIVERED,
+    CANCELLED;
+
+    public String getLocalizedName(MessageSource messageSource) {
+        return messageSource.getMessage("order.status." + this.name(), null, LocaleContextHolder.getLocale());
+    }
 }
