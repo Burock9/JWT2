@@ -43,7 +43,6 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final OrderSearchService orderSearchService;
-    private final MessageService messageService;
 
     private String generateOrderNumber() {
         return "SIP-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
@@ -66,13 +65,13 @@ public class OrderService {
         log.info("{} Kullanıcısı için sipariş oluşturuluyor", username);
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException(messageService.getMessage("auth.user.not.found")));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
 
         Cart cart = cartRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException(messageService.getMessage("cart.not.found")));
+                .orElseThrow(() -> new RuntimeException("Sepet bulunamadı"));
 
         if (cart.getItems().isEmpty()) {
-            throw new RuntimeException(messageService.getMessage("order.empty.cart"));
+            throw new RuntimeException("Sepet boş");
         }
 
         Order order = Order.builder().orderNumber(generateOrderNumber()).user(user).totalAmount(BigDecimal.ZERO)
@@ -82,8 +81,7 @@ public class OrderService {
         List<OrderItem> orderItems = cart.getItems().stream().map(cartLine -> {
             Product product = cartLine.getProduct();
             if (product.getStock() < cartLine.getQuantity()) {
-                throw new RuntimeException(
-                        messageService.getMessage("order.insufficient.stock", new Object[] { product.getName() }));
+                throw new RuntimeException("Yetersiz stok: " + product.getName());
             }
 
             product.setStock(product.getStock() - cartLine.getQuantity());
@@ -114,30 +112,33 @@ public class OrderService {
     }
 
     public List<OrderResponse> getUserOrders(String username) {
+        log.info("Kullanıcı siparişleri getiriliyor: {}", username);
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException(messageService.getMessage("auth.user.not.found")));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
 
         List<Order> orders = orderRepository.findByUserOrderByOrderDateDesc(user);
         return orders.stream().map(this::convertToOrderResponse).collect(Collectors.toList());
     }
 
     public OrderResponse getOrderById(Long orderId, String username) {
+        log.info("Sipariş ID'ye göre getiriliyor: {} için kullanıcı: {}", orderId, username);
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException(messageService.getMessage("auth.user.not.found")));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException(messageService.getMessage("order.not.found")));
+                .orElseThrow(() -> new RuntimeException("Sipariş bulunamadı"));
 
         if (!order.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException(messageService.getMessage("order.access.denied"));
+            throw new RuntimeException("Erişim reddedildi");
         }
 
         return convertToOrderResponse(order);
     }
 
     public OrderResponse updateOrderStatus(Long orderId, OrderStatus status) {
+        log.info("Sipariş durumu güncelleniyor: {} yeni durum: {}", orderId, status);
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException(messageService.getMessage("order.not.found")));
+                .orElseThrow(() -> new RuntimeException("Sipariş bulunamadı"));
 
         order.setStatus(status);
 
@@ -149,6 +150,7 @@ public class OrderService {
 
         orderSearchService.indexOrder(savedOrder);
 
+        log.info("Sipariş durumu başarıyla güncellendi: {} - {}", savedOrder.getOrderNumber(), status);
         return convertToOrderResponse(savedOrder);
     }
 
@@ -165,8 +167,9 @@ public class OrderService {
     }
 
     public Long getUserOrderCount(String username) {
+        log.info("Kullanıcı sipariş sayısı getiriliyor: {}", username);
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException(messageService.getMessage("auth.user.not.found")));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
         return orderRepository.countOrdersByUser(user);
     }
 
@@ -177,16 +180,18 @@ public class OrderService {
     }
 
     public List<OrderResponse> getUserOrdersByStatus(String username, OrderStatus status) {
+        log.info("Kullanıcı siparişleri duruma göre getiriliyor: {} durum: {}", username, status);
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException(messageService.getMessage("auth.user.not.found")));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
 
         List<Order> orders = orderRepository.findByUserAndStatus(user, status);
         return orders.stream().map(this::convertToOrderResponse).collect(Collectors.toList());
     }
 
     public Page<OrderResponse> getUserOrdersPaged(String username, Pageable pageable) {
+        log.info("Kullanıcı siparişleri sayfalı getiriliyor: {}", username);
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException(messageService.getMessage("auth.user.not.found")));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
 
         Page<Order> orders = orderRepository.findByUserOrderByOrderDateDesc(user, pageable);
         return orders.map(this::convertToOrderResponse);
@@ -200,20 +205,20 @@ public class OrderService {
 
     @Transactional
     public OrderResponse cancelOrder(Long orderId, String username) {
-        log.info("Kullanıcı : {} tarafından sipariş iptal ediliyor: {}", orderId, username);
+        log.info("Kullanıcı: {} tarafından sipariş iptal ediliyor: {}", username, orderId);
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException(messageService.getMessage("auth.user.not.found")));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException(messageService.getMessage("order.not.found")));
+                .orElseThrow(() -> new RuntimeException("Sipariş bulunamadı"));
 
         if (!order.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException(messageService.getMessage("order.access.denied"));
+            throw new RuntimeException("Erişim reddedildi");
         }
 
         if (order.getStatus() != OrderStatus.PENDING) {
-            throw new RuntimeException(messageService.getMessage("order.cannot.cancel"));
+            throw new RuntimeException("Bu sipariş iptal edilemez");
         }
 
         order.getOrderItems().forEach(orderItem -> {
@@ -236,10 +241,10 @@ public class OrderService {
         log.info("Yönetici siparişi iptal etti: {} İptal sebebi: {}", orderId, reason);
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException(messageService.getMessage("order.not.found")));
+                .orElseThrow(() -> new RuntimeException("Sipariş bulunamadı"));
 
         if (order.getStatus() == OrderStatus.DELIVERED) {
-            throw new RuntimeException(messageService.getMessage("order.delivered.cannot.cancel"));
+            throw new RuntimeException("Teslim edilmiş sipariş iptal edilemez");
         }
 
         if (order.getStatus() == OrderStatus.PENDING || order.getStatus() == OrderStatus.CONFIRMED) {
@@ -264,34 +269,40 @@ public class OrderService {
     }
 
     public String getOrderSummary(Long orderId) {
+        log.info("Sipariş özeti getiriliyor: {}", orderId);
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException(messageService.getMessage("order.not.found")));
+                .orElseThrow(() -> new RuntimeException("Sipariş bulunamadı"));
 
         int totalItems = order.getOrderItems().stream()
                 .mapToInt(OrderItem::getQuantity)
                 .sum();
 
-        return messageService.getMessage("order.summary",
-                new Object[] { order.getOrderNumber(), totalItems, order.getTotalAmount(), order.getStatus() });
+        return String.format("Sipariş %s: %d ürün, Toplam: %s TL, Durum: %s",
+                order.getOrderNumber(), totalItems, order.getTotalAmount(), order.getStatus());
     }
 
     public BigDecimal getUserTotalSpending(String username) {
+        log.info("Kullanıcı toplam harcaması hesaplanıyor: {}", username);
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException(messageService.getMessage("auth.user.not.found")));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
 
         List<Order> completedOrders = orderRepository.findByUserAndStatus(user, OrderStatus.DELIVERED);
 
-        return completedOrders.stream()
+        BigDecimal totalSpending = completedOrders.stream()
                 .map(Order::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        log.info("Kullanıcı {} toplam harcaması: {} TL", username, totalSpending);
+        return totalSpending;
     }
 
     public String calculateDeliveryTime(Long orderId) {
+        log.info("Teslimat süresi hesaplanıyor: {}", orderId);
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException(messageService.getMessage("order.not.found")));
+                .orElseThrow(() -> new RuntimeException("Sipariş bulunamadı"));
 
         if (order.getDeliveryDate() == null) {
-            return messageService.getMessage("order.not.delivered");
+            return "Henüz teslim edilmedi";
         }
 
         LocalDateTime orderDate = order.getOrderDate();
@@ -300,41 +311,36 @@ public class OrderService {
         long days = java.time.Duration.between(orderDate, deliveryDate).toDays();
         long hours = java.time.Duration.between(orderDate, deliveryDate).toHours() % 24;
 
-        return messageService.getMessage("order.delivery.time", new Object[] { days, hours });
+        String deliveryTime = String.format("%d gün %d saat", days, hours);
+        log.info("Sipariş {} teslimat süresi: {}", order.getOrderNumber(), deliveryTime);
+        return deliveryTime;
     }
 
     public Page<OrderResponse> searchOrdersInElasticsearch(String query, Pageable pageable) {
-        log.info("Siparişler Elasticsearch ile sırayla getiriliyor: {}", query);
-        return orderSearchService.searchOrders(query, pageable)
+        log.info("Elasticsearch ile sipariş aranıyor: {} (sayfa: {})", query, pageable.getPageNumber());
+        Page<OrderResponse> results = orderSearchService.searchOrders(query, pageable)
                 .map(orderIndex -> {
-                    return OrderResponse.builder()
-                            .id(Long.valueOf(orderIndex.getId()))
-                            .orderNumber(orderIndex.getOrderNumber())
-                            .totalAmount(orderIndex.getTotalAmount())
-                            .status(OrderStatus.valueOf(orderIndex.getStatus()))
-                            .orderDate(orderIndex.getOrderDate())
-                            .deliveryDate(orderIndex.getDeliveryDate())
-                            .shippingAddress(orderIndex.getShippingAddress())
-                            .notes(orderIndex.getNotes())
-                            .build();
+                    return OrderResponse.builder().id(Long.valueOf(orderIndex.getId()))
+                            .orderNumber(orderIndex.getOrderNumber()).totalAmount(orderIndex.getTotalAmount())
+                            .status(OrderStatus.valueOf(orderIndex.getStatus())).orderDate(orderIndex.getOrderDate())
+                            .deliveryDate(orderIndex.getDeliveryDate()).shippingAddress(orderIndex.getShippingAddress())
+                            .notes(orderIndex.getNotes()).build();
                 });
+        log.info("Elasticsearch araması tamamlandı. Bulunan sonuç sayısı: {}", results.getTotalElements());
+        return results;
     }
 
     public Page<OrderResponse> searchOrdersByStatusInElasticsearch(String status, Pageable pageable) {
-        log.info("Siparişler Elasticsearch ile durumuna göre getiriliyor: {}", status);
-        return orderSearchService.findByStatus(status, pageable)
+        log.info("Elasticsearch ile sipariş durumuna göre aranıyor: {} (sayfa: {})", status, pageable.getPageNumber());
+        Page<OrderResponse> results = orderSearchService.findByStatus(status, pageable)
                 .map(orderIndex -> {
-                    return OrderResponse.builder()
-                            .id(Long.valueOf(orderIndex.getId()))
-                            .orderNumber(orderIndex.getOrderNumber())
-                            .totalAmount(orderIndex.getTotalAmount())
-                            .status(OrderStatus.valueOf(orderIndex.getStatus()))
-                            .orderDate(orderIndex.getOrderDate())
-                            .deliveryDate(orderIndex.getDeliveryDate())
-                            .shippingAddress(orderIndex.getShippingAddress())
-                            .notes(orderIndex.getNotes())
-                            .build();
+                    return OrderResponse.builder().id(Long.valueOf(orderIndex.getId()))
+                            .orderNumber(orderIndex.getOrderNumber()).totalAmount(orderIndex.getTotalAmount())
+                            .status(OrderStatus.valueOf(orderIndex.getStatus())).orderDate(orderIndex.getOrderDate())
+                            .deliveryDate(orderIndex.getDeliveryDate()).shippingAddress(orderIndex.getShippingAddress())
+                            .notes(orderIndex.getNotes()).build();
                 });
+        log.info("Durum bazlı Elasticsearch araması tamamlandı. Bulunan sonuç sayısı: {}", results.getTotalElements());
+        return results;
     }
-
 }

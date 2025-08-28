@@ -92,7 +92,7 @@ public class CartController {
     // Admin işlemleri - Sadece analiz ve raporlama amaçlı
 
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/admin/all")
+    @GetMapping("/admin/all/carts")
     public ResponseEntity<Page<CartIndex>> getAllCarts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
