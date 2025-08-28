@@ -27,6 +27,9 @@ public class MessageConfig implements WebMvcConfigurer {
     @Bean
     public LocaleResolver localeResolver() {
         AcceptHeaderLocaleResolver localeResolver = new AcceptHeaderLocaleResolver();
+        localeResolver.setSupportedLocales(java.util.Arrays.asList(
+                Locale.forLanguageTag("tr"),
+                Locale.forLanguageTag("en")));
         localeResolver.setDefaultLocale(Locale.forLanguageTag("tr-TR"));
         return localeResolver;
     }
