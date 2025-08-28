@@ -42,8 +42,8 @@ public class Order {
 
     private LocalDateTime deliveryDate;
 
-    @Embedded
-    private Address shippingAddress;
+    @Column(length = 500)
+    private String shippingAddress;
 
     private String notes;
 

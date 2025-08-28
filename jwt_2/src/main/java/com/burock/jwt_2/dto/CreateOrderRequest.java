@@ -1,9 +1,6 @@
 package com.burock.jwt_2.dto;
 
-import com.burock.jwt_2.model.Address;
-
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 @Getter
@@ -13,9 +10,8 @@ import lombok.*;
 @Builder
 public class CreateOrderRequest {
 
-    @Valid
-    @NotNull
-    private Address shippingAddress;
+    @NotBlank(message = "Teslimat adresi boş olamaz")
+    private String shippingAddress;
 
     private String notes;
 

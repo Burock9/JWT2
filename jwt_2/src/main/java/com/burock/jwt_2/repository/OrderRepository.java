@@ -20,7 +20,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     Optional<Order> findByOrderNumber(String orderNumber);
 
-    List<Order> findByUserOrderDateDesc(User user);
+    List<Order> findByUserOrderByOrderDateDesc(User user);
 
     Page<Order> findByUserOrderByOrderDateDesc(User user, Pageable pageable);
 

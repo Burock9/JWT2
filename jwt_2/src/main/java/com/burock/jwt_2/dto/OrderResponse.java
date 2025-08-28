@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import com.burock.jwt_2.model.Address;
 import com.burock.jwt_2.model.OrderStatus;
 
 import lombok.*;
@@ -23,6 +22,6 @@ public class OrderResponse {
     private OrderStatus status;
     private LocalDateTime orderDate;
     private LocalDateTime deliveryDate;
-    private Address shippingAddress;
+    private String shippingAddress;
     private String notes;
 }
