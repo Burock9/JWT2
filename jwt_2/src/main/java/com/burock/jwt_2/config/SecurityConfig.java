@@ -19,19 +19,34 @@ import com.burock.jwt_2.security.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 
 @Configuration
-@EnableMethodSecurity // @PreAuthorize ve @PostAuthorize için
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
 
+    private static final String[] SWAGGER_WHITELIST = {
+            "/v3/api-docs/**",
+            "/v3/api-docs",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/swagger-ui/index.html",
+            "/swagger-resources/**",
+            "/webjars/**",
+            "/api-docs/**"
+    };
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http.csrf(csrf -> csrf.disable())
+        return http
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/products/**", "/categories/**").authenticated()
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(SWAGGER_WHITELIST).permitAll()
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/products/**", "/categories/**").permitAll()
+                        .requestMatchers("/orders/search/**", "/orders/order-number/**").permitAll()
                         .anyRequest().authenticated())
                 .authenticationProvider(daoAuthProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
