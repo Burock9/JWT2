@@ -21,11 +21,17 @@ public class ProductIndex {
     @Field(type = FieldType.Text)
     private String name;
 
+    @Field(type = FieldType.Text)
+    private String description;
+
     @Field(type = FieldType.Double)
     private double price;
 
     @Field(type = FieldType.Integer)
     private int stock;
+
+    @Field(type = FieldType.Keyword)
+    private String imageUrl;
 
     // Filtreleme için hem id hem ad tutulacak
 

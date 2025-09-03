@@ -19,4 +19,6 @@ public class Category {
     @NotBlank
     @Column(unique = true)
     private String name;
+
+    private String description;
 }
