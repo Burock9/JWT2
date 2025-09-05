@@ -23,12 +23,20 @@ public class Jwt2Application {
 	CommandLineRunner initUsers(UserRepository userRepo, PasswordEncoder encoder) {
 		return args -> {
 			if (userRepo.findByUsername("admin").isEmpty()) {
-				userRepo.save(User.builder().username("admin").password(encoder.encode("admin"))
-						.roles(Set.<Role>of(Role.ROLE_ADMIN, Role.ROLE_USER)).build());
+				userRepo.save(User.builder()
+						.username("admin")
+						.email("admin@example.com")
+						.password(encoder.encode("admin"))
+						.roles(Set.<Role>of(Role.ROLE_ADMIN, Role.ROLE_USER))
+						.build());
 			}
 			if (userRepo.findByUsername("user").isEmpty()) {
-				userRepo.save(User.builder().username("user").password(encoder.encode("user"))
-						.roles(Set.<Role>of(Role.ROLE_USER)).build());
+				userRepo.save(User.builder()
+						.username("user")
+						.email("user@example.com")
+						.password(encoder.encode("user"))
+						.roles(Set.<Role>of(Role.ROLE_USER))
+						.build());
 			}
 		};
 	}

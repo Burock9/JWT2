@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.burock.jwt_2.dto.ResponseWrapper;
 import com.burock.jwt_2.dto.LoginRequest;
+import com.burock.jwt_2.dto.RegisterRequest;
 import com.burock.jwt_2.dto.TokenResponse;
 import com.burock.jwt_2.model.User;
 import com.burock.jwt_2.service.AuthService;
@@ -40,7 +41,7 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Geçersiz veri")
     })
     @PostMapping("/register")
-    public ResponseEntity<ResponseWrapper<String>> register(@Valid @RequestBody LoginRequest req) {
+    public ResponseEntity<ResponseWrapper<String>> register(@Valid @RequestBody RegisterRequest req) {
         try {
             String result = authService.register(req);
             return ResponseEntity.ok(new ResponseWrapper<>(

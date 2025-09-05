@@ -10,6 +10,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
 import com.burock.jwt_2.dto.LoginRequest;
+import com.burock.jwt_2.dto.RegisterRequest;
 import com.burock.jwt_2.dto.TokenResponse;
 import com.burock.jwt_2.model.Role;
 import com.burock.jwt_2.model.User;
@@ -24,13 +25,21 @@ public class AuthService {
     private final JwtService jwtService;
     private final UserService userService;
 
-    public String register(LoginRequest req) {
+    public String register(RegisterRequest req) {
         if (userService.exists(req.getUsername())) {
             throw new RuntimeException("Kullanıcı adı zaten var.");
         }
 
-        User u = User.builder().username(req.getUsername()).password(userService.encode(req.getPassword()))
-                .roles(Set.of(Role.ROLE_USER)).build();
+        if (userService.existsByEmail(req.getEmail())) {
+            throw new RuntimeException("Email adresi zaten var.");
+        }
+
+        User u = User.builder()
+                .username(req.getUsername())
+                .email(req.getEmail())
+                .password(userService.encode(req.getPassword()))
+                .roles(Set.of(Role.ROLE_USER))
+                .build();
         userService.save(u);
         return "Kayıt Başarılı";
     }
@@ -43,7 +52,12 @@ public class AuthService {
 
         String token = jwtService.generateToken(req.getUsername(), roles);
 
-        return TokenResponse.builder().token(token).build();
+        return TokenResponse.builder()
+                .token(token)
+                .type("Bearer")
+                .username(req.getUsername())
+                .roles(roles.toArray(new String[0]))
+                .build();
     }
 
     public User me(String username) {

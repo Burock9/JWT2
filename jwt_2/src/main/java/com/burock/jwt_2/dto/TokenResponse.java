@@ -9,4 +9,7 @@ import lombok.*;
 @Builder
 public class TokenResponse {
     private String token;
+    private String type;
+    private String username;
+    private String[] roles;
 }

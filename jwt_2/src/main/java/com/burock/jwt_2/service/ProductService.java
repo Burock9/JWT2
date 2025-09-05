@@ -47,7 +47,7 @@ public class ProductService {
     }
 
     public Page<ProductIndex> findByPriceRange(double minPrice, double maxPrice, Pageable pageable) {
-        log.info("Elasticsearch ile {} ile {} arası fiyatlardaki ürünler bulunuyor...", minPrice,maxPrice);
+        log.info("Elasticsearch ile {} ile {} arası fiyatlardaki ürünler bulunuyor...", minPrice, maxPrice);
         return productSearchService.findByPriceRange(minPrice, maxPrice, pageable);
     }
 
@@ -91,6 +91,8 @@ public class ProductService {
         ep.setPrice(p.getPrice());
         ep.setCategory(p.getCategory());
         ep.setStock(p.getStock());
+        ep.setImageUrl(p.getImageUrl());
+        ep.setDescription(p.getDescription());
 
         Product saved = repo.save(ep);
         try {

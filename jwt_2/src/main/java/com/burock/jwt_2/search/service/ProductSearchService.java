@@ -17,10 +17,16 @@ public class ProductSearchService {
     private final ProductSearchRepository productSearchRepository;
 
     public void indexProduct(Product p) {
-        ProductIndex doc = ProductIndex.builder().id(p.getId().toString()).name(p.getName()).price(p.getPrice())
+        ProductIndex doc = ProductIndex.builder()
+                .id(p.getId().toString())
+                .name(p.getName())
+                .price(p.getPrice())
                 .stock(p.getStock())
+                .imageUrl(p.getImageUrl())
+                .description(p.getDescription())
                 .categoryId(p.getCategory() != null ? String.valueOf(p.getCategory().getId()) : null)
-                .categoryName(p.getCategory() != null ? p.getCategory().getName() : null).build();
+                .categoryName(p.getCategory() != null ? p.getCategory().getName() : null)
+                .build();
 
         productSearchRepository.save(doc);
     }
@@ -30,7 +36,8 @@ public class ProductSearchService {
     }
 
     public ProductIndex getById(Long id) {
-        return productSearchRepository.findById(id.toString()).orElseThrow(() -> new RuntimeException("Ürün Bulunamadı:"+ id));
+        return productSearchRepository.findById(id.toString())
+                .orElseThrow(() -> new RuntimeException("Ürün Bulunamadı:" + id));
     }
 
     public Page<ProductIndex> search(String q, Pageable pageable) {

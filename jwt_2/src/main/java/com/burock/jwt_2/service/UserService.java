@@ -24,6 +24,10 @@ public class UserService {
         return repo.existsByUsername(username);
     }
 
+    public boolean existsByEmail(String email) {
+        return repo.existsByEmail(email);
+    }
+
     @PostAuthorize("returnObject.username == authentication.name or hasRole('ADMIN')")
     public User getByUsernameSecured(String username) {
         return repo.findByUsername(username).orElseThrow(() -> new RuntimeException("Kullanıcı Bulunamadı."));
