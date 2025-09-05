@@ -68,6 +68,21 @@ public class ProductController {
 
     // Admin
 
+    @Operation(summary = "Admin Ürün Listesi", description = "Sadece ADMIN kullanıcılar için tüm ürünleri listeler", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Ürünler başarıyla listelendi"),
+            @ApiResponse(responseCode = "403", description = "Admin yetkisi gerekli")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin")
+    public ResponseEntity<ResponseWrapper<Page<Product>>> getAllProductsForAdmin(
+            @Parameter(description = "Sayfa numarası (0'dan başlar)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Sayfa başına kayıt sayısı") @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(new ResponseWrapper<>(
+                "Ürünler başarıyla listelendi",
+                service.getAllForAdmin(PageRequest.of(page, size))));
+    }
+
     @Operation(summary = "Yeni Ürün Oluştur", description = "Sadece ADMIN kullanıcılar yeni ürün oluşturabilir", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Ürün başarıyla oluşturuldu", content = @Content(schema = @Schema(implementation = Product.class))),

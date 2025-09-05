@@ -31,6 +31,25 @@ public class ProductService {
         return productSearchService.getAll(pageable);
     }
 
+    public Page<Product> getAllForAdmin(Pageable pageable) {
+        log.info("Admin için tüm ürünler database'den getiriliyor...");
+        return repo.findAll(pageable);
+    }
+
+    public Product getProductById(Long id) {
+        log.info("Ürün database'den getiriliyor: {}", id);
+        return repo.findById(id).orElseThrow(() -> new RuntimeException("Ürün bulunamadı: " + id));
+    }
+
+    // Dashboard için istatistik metodları
+    public long getTotalProductCount() {
+        return repo.count();
+    }
+
+    public long getOutOfStockCount() {
+        return repo.countByStockLessThanEqual(0);
+    }
+
     public ProductIndex getById(Long id) {
         log.info("{} Id'li ürün Elasticsearch ile getiriliyor...", id);
         return productSearchService.getById(id);
