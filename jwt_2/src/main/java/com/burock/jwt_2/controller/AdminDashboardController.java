@@ -35,28 +35,28 @@ public class AdminDashboardController {
     @GetMapping("/stats")
     public ResponseEntity<ResponseWrapper<Map<String, Object>>> getDashboardStats() {
         Map<String, Object> stats = new HashMap<>();
-        
+
         try {
             // Toplam ürün sayısı
             long totalProducts = productService.getTotalProductCount();
             stats.put("totalProducts", totalProducts);
-            
+
             // Toplam kullanıcı sayısı
             long totalUsers = userService.getTotalUserCount();
             stats.put("totalUsers", totalUsers);
-            
+
             // Toplam kategori sayısı
             long totalCategories = categoryRepository.count();
             stats.put("totalCategories", totalCategories);
-            
+
             // Stokta olmayan ürün sayısı
             long outOfStockProducts = productService.getOutOfStockCount();
             stats.put("outOfStockProducts", outOfStockProducts);
-            
+
             return ResponseEntity.ok(new ResponseWrapper<>(
                     "Dashboard istatistikleri başarıyla getirildi",
                     stats));
-                    
+
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(new ResponseWrapper<>(
                     "İstatistikler alınırken hata oluştu",

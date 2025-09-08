@@ -65,7 +65,8 @@ public class AdminProductController {
 
     @Operation(summary = "Ürün Güncelle", description = "Ürün bilgilerini günceller")
     @PutMapping("/{id}")
-    public ResponseEntity<ResponseWrapper<Product>> updateProduct(@PathVariable Long id, @Valid @RequestBody Product product) {
+    public ResponseEntity<ResponseWrapper<Product>> updateProduct(@PathVariable Long id,
+            @Valid @RequestBody Product product) {
         try {
             Product updatedProduct = productService.update(id, product);
             return ResponseEntity.ok(new ResponseWrapper<>(
