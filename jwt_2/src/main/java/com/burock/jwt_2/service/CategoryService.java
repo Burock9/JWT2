@@ -67,6 +67,7 @@ public class CategoryService {
         log.info("Kategori güncelleniyor id: {}", id);
         Category ec = repo.findById(id).orElseThrow(() -> new RuntimeException("Kategori bulunamadı: " + id));
         ec.setName(c.getName());
+        ec.setDescription(c.getDescription()); // Description da güncelle
 
         Category updated = repo.save(ec);
         log.info("Kategori veritabanında başarıyla güncellendi");

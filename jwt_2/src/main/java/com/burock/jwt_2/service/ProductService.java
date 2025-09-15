@@ -11,6 +11,7 @@ import com.burock.jwt_2.model.Product;
 import com.burock.jwt_2.repository.CategoryRepository;
 import com.burock.jwt_2.repository.ProductRepository;
 import com.burock.jwt_2.search.model.ProductIndex;
+import com.burock.jwt_2.search.service.CategorySearchService;
 import com.burock.jwt_2.search.service.ProductSearchService;
 
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class ProductService {
     private final ProductRepository repo;
     private final ProductSearchService productSearchService;
     private final CategoryRepository categoryRepo;
+    private final CategorySearchService categorySearchService;
 
     public Page<ProductIndex> getAll(Pageable pageable) {
         log.info("Tüm ürünler Elasticsearch ile getiriliyor...");
@@ -89,6 +91,10 @@ public class ProductService {
         Product saved = repo.save(p);
         try {
             productSearchService.indexProduct(saved);
+            // Kategori index'ini güncelleyelim (ürün sayısı için)
+            if (saved.getCategory() != null) {
+                categorySearchService.indexCategory(saved.getCategory());
+            }
             log.info("Ürün Elasticsearch'e başarılı bir şekilde indekslendi.");
         } catch (Exception e) {
             log.error("Ürün indekslenemedi: {}", e.getMessage());
@@ -100,6 +106,9 @@ public class ProductService {
     public Product update(Long id, Product p) {
         log.info("Ürün güncelleniyor: {}", id);
         Product ep = repo.findById(id).orElseThrow(() -> new RuntimeException("Ürün bulunamadı: " + id));
+
+        // Eski kategoriyi kaydet (kategori değişirse güncellemek için)
+        Category oldCategory = ep.getCategory();
 
         if (p.getCategory() != null && p.getCategory().getId() != null) {
             Category fullCategory = categoryRepo.findById(p.getCategory().getId())
@@ -116,6 +125,19 @@ public class ProductService {
         Product saved = repo.save(ep);
         try {
             productSearchService.indexProduct(saved);
+
+            // Kategori index'lerini güncelleyelim (ürün sayısı için)
+            // Yeni kategoriyi güncelle
+            if (saved.getCategory() != null) {
+                categorySearchService.indexCategory(saved.getCategory());
+            }
+
+            // Eğer kategori değiştiyse, eski kategoriyi de güncelle
+            if (oldCategory != null &&
+                    (saved.getCategory() == null || !oldCategory.getId().equals(saved.getCategory().getId()))) {
+                categorySearchService.indexCategory(oldCategory);
+            }
+
             log.info("Ürün Elasticsearch'te başarılı bir şekilde güncellendi.");
         } catch (Exception e) {
             log.error("Ürün güncellenemedi: {}", e.getMessage());
@@ -130,10 +152,19 @@ public class ProductService {
         if (!repo.existsById(id)) {
             throw new RuntimeException("Ürün bulunamadı: " + id);
         }
+
+        // Kategori bilgisini silinmeden önce al
+        Product productToDelete = repo.findById(id).orElse(null);
+        Category categoryToUpdate = productToDelete != null ? productToDelete.getCategory() : null;
+
         repo.deleteById(id);
 
         try {
             productSearchService.deleteFromIndex(id);
+            // Kategori index'ini güncelleyelim (ürün sayısı için)
+            if (categoryToUpdate != null) {
+                categorySearchService.indexCategory(categoryToUpdate);
+            }
             log.info("Ürün Elastiksearch'ten başarıyla silindi");
         } catch (Exception e) {
             log.error("Elastiksearch'ten ürün silme başarısız oldu: {}", e.getMessage());

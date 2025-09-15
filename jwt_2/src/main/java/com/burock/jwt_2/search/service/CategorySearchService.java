@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.burock.jwt_2.model.Category;
+import com.burock.jwt_2.repository.ProductRepository;
 import com.burock.jwt_2.search.model.CategoryIndex;
 import com.burock.jwt_2.search.repository.CategorySearchRepository;
 
@@ -17,12 +18,19 @@ import lombok.extern.slf4j.Slf4j;
 public class CategorySearchService {
 
     private final CategorySearchRepository categorySearchRepository;
+    private final ProductRepository productRepository;
 
     public void indexCategory(Category category) {
         log.info("Kategori Elasticsearch'e indeksleniyor: {}", category.getName());
 
-        CategoryIndex categoryIndex = CategoryIndex.builder().id(category.getId().toString()).name(category.getName())
-                .description(null).productCount(0).build();
+        Long productCount = productRepository.countByCategoryId(category.getId());
+
+        CategoryIndex categoryIndex = CategoryIndex.builder()
+                .id(category.getId().toString())
+                .name(category.getName())
+                .description(category.getDescription()) // Description'ı da indexle
+                .productCount(productCount.intValue())
+                .build();
 
         categorySearchRepository.save(categoryIndex);
         log.info("Kategori başarıyla indekslendi", categoryIndex.getId());
