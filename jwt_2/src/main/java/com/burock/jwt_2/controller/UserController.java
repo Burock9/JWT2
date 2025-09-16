@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import com.burock.jwt_2.dto.ResponseWrapper;
@@ -54,12 +55,21 @@ public class UserController {
     @Operation(summary = "Kullanıcı Güncelle", description = "Kullanıcı bilgilerini günceller")
     @PutMapping("/{id}")
     public ResponseEntity<ResponseWrapper<User>> updateUser(@PathVariable Long id, @Valid @RequestBody User user) {
+        System.out.println("🔧 PUT /admin/users/" + id + " - Request received");
+        System.out.println("🔑 Current user: " + SecurityContextHolder.getContext().getAuthentication().getName());
+        System.out.println(
+                "🔑 User authorities: " + SecurityContextHolder.getContext().getAuthentication().getAuthorities());
+        System.out.println("📝 Request body: " + user);
+
         try {
             User updatedUser = userService.updateUser(id, user);
+            System.out.println("✅ User updated successfully: " + updatedUser.getUsername());
             return ResponseEntity.ok(new ResponseWrapper<>(
                     messageService.getMessage("user.updated"),
                     updatedUser));
         } catch (RuntimeException e) {
+            System.err.println("❌ Error updating user: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().body(new ResponseWrapper<>(
                     messageService.getMessage("user.not.found"),
                     null));
