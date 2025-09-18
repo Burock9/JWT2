@@ -1,5 +1,6 @@
 package com.burock.jwt_2.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -38,7 +39,7 @@ public class CartService {
     private final CartSearchService cartSearchService;
 
     // GET işlemleri Elasticsearch ile
-    
+
     public Optional<CartIndex> getCartByUserId(Long userId) {
         log.info("Kullanıcı sepeti Elasticsearch'ten getiriliyor: {}", userId);
         return cartSearchService.getByUserId(userId);
@@ -102,8 +103,14 @@ public class CartService {
     public CartResponse getCart(User user) {
         log.info("Kullanıcı sepeti getiriliyor: {}", user.getUsername());
 
-        Cart cart = cartRepository.findByUser(user).orElseThrow(() -> new RuntimeException("Sepet Bulunamadı."));
+        Optional<Cart> cartOpt = cartRepository.findByUser(user);
 
+        if (cartOpt.isEmpty()) {
+            log.info("Kullanıcının sepeti yok, boş sepet döndürülüyor: {}", user.getUsername());
+            return new CartResponse(new ArrayList<>(), 0.0);
+        }
+
+        Cart cart = cartOpt.get();
         List<CartItemResponse> items = cartItemRepository.findByCart(cart).stream()
                 .map(ci -> new CartItemResponse(ci.getProduct().getId(), ci.getProduct().getName(), ci.getQuantity(),
                         ci.getProduct().getPrice() * ci.getQuantity()))
