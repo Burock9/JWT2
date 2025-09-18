@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -34,10 +35,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/cart")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Sepet", description = "Sepet yönetimi ve Elasticsearch arama işlemleri")
 public class CartController {
 
@@ -90,6 +93,35 @@ public class CartController {
         return ResponseEntity.ok(cartService.getCartByUserId(user.getId()));
     }
 
+    @Operation(summary = "Sepet Miktarını Güncelle", description = "Sepetteki ürünün miktarını günceller", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Miktar başarıyla güncellendi"),
+            @ApiResponse(responseCode = "400", description = "Ürün bulunamadı veya geçersiz miktar"),
+            @ApiResponse(responseCode = "401", description = "Yetkilendirme gerekli")
+    })
+    @PutMapping("/update")
+    public ResponseEntity<ResponseWrapper<String>> updateQuantity(
+            @Parameter(description = "Güncelleme bilgileri", required = true) @RequestBody AddToCartRequest request,
+            Principal principal) {
+        try {
+            User user = userService.getByUsernameSecured(principal.getName());
+            log.info("Sepet miktar güncelleme isteği: Kullanıcı={}, ÜrünID={}, YeniMiktar={}",
+                    user.getUsername(), request.getProductId(), request.getQuantity());
+            cartService.updateCartQuantity(user, request.getProductId(), request.getQuantity());
+            log.info("Sepet miktar başarıyla güncellendi: Kullanıcı={}, ÜrünID={}",
+                    user.getUsername(), request.getProductId());
+            return ResponseEntity.ok(new ResponseWrapper<>(
+                    messageService.getMessage("cart.item.updated"),
+                    null));
+        } catch (RuntimeException e) {
+            log.error("Sepet miktar güncellenirken hata: Kullanıcı={}, ÜrünID={}, Hata={}",
+                    principal.getName(), request.getProductId(), e.getMessage(), e);
+            return ResponseEntity.badRequest().body(new ResponseWrapper<>(
+                    e.getMessage(), // Gerçek hata mesajını döndür
+                    null));
+        }
+    }
+
     @Operation(summary = "Sepetten Ürün Çıkar", description = "Kullanıcının sepetinden belirtilen ürünü tamamen çıkarır", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Ürün sepetten başarıyla çıkarıldı"),
@@ -102,9 +134,33 @@ public class CartController {
             Principal principal) {
         try {
             User user = userService.getByUsernameSecured(principal.getName());
+            log.info("Sepetten ürün silme isteği: Kullanıcı={}, ÜrünID={}", user.getUsername(), productId);
             cartService.removeFromCart(user, productId);
+            log.info("Sepetten ürün başarıyla silindi: Kullanıcı={}, ÜrünID={}", user.getUsername(), productId);
             return ResponseEntity.ok(new ResponseWrapper<>(
                     messageService.getMessage("cart.item.removed"),
+                    null));
+        } catch (RuntimeException e) {
+            log.error("Sepetten ürün silinirken hata: Kullanıcı={}, ÜrünID={}, Hata={}",
+                    principal.getName(), productId, e.getMessage(), e);
+            return ResponseEntity.badRequest().body(new ResponseWrapper<>(
+                    e.getMessage(), // Gerçek hata mesajını döndür
+                    null));
+        }
+    }
+
+    @Operation(summary = "Sepeti Temizle", description = "Kullanıcının sepetini tamamen temizler", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Sepet başarıyla temizlendi"),
+            @ApiResponse(responseCode = "401", description = "Yetkilendirme gerekli")
+    })
+    @DeleteMapping("/clear")
+    public ResponseEntity<ResponseWrapper<String>> clearCart(Principal principal) {
+        try {
+            User user = userService.getByUsernameSecured(principal.getName());
+            cartService.clearCart(user);
+            return ResponseEntity.ok(new ResponseWrapper<>(
+                    messageService.getMessage("cart.cleared"),
                     null));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(new ResponseWrapper<>(

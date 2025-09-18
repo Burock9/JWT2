@@ -10,4 +10,5 @@ public class CartItemResponse {
     private String productName;
     private int quantity;
     private double price;
+    private String imageUrl; // Ürün fotoğrafı için eklendi
 }

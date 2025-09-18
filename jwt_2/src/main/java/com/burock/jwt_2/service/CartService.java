@@ -111,9 +111,10 @@ public class CartService {
         }
 
         Cart cart = cartOpt.get();
-        List<CartItemResponse> items = cartItemRepository.findByCart(cart).stream()
+        // Sepete ekleme sırasına göre sıralı liste (ID artan sırada)
+        List<CartItemResponse> items = cartItemRepository.findByCartOrderById(cart).stream()
                 .map(ci -> new CartItemResponse(ci.getProduct().getId(), ci.getProduct().getName(), ci.getQuantity(),
-                        ci.getProduct().getPrice() * ci.getQuantity()))
+                        ci.getProduct().getPrice() * ci.getQuantity(), ci.getProduct().getImageUrl()))
                 .collect(Collectors.toList());
         double totalPrice = items.stream().mapToDouble(CartItemResponse::getPrice).sum();
 
@@ -121,29 +122,125 @@ public class CartService {
     }
 
     public void removeFromCart(User user, Long productId) {
-        log.info("Sepetten ürün siliniyor kullanıcı: {}, ürün: {}", user.getUsername(), productId);
+        log.info("🗑️ Sepetten ürün siliniyor kullanıcı: {}, ürün: {}", user.getUsername(), productId);
 
         Cart cart = cartRepository.findByUser(user).orElseThrow(() -> new RuntimeException("Sepet Bulunamadı."));
+        log.info("📦 Cart bulundu: ID={}, User={}", cart.getId(), cart.getUser().getUsername());
 
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Ürün Bulunamadı."));
+        log.info("🛍️ Product bulundu: ID={}, Name={}", product.getId(), product.getName());
+
+        CartLine cartItem = cartItemRepository.findByCartAndProduct(cart, product)
+                .orElseThrow(() -> new RuntimeException("Ürün Sepette Değil."));
+        log.info("📋 CartLine bulundu: ID={}, Quantity={}", cartItem.getId(), cartItem.getQuantity());
+
+        log.info("🗑️ CartLine siliniyor: ID={}", cartItem.getId());
+        cartItemRepository.delete(cartItem);
+        log.info("✅ CartLine veritabanından silindi");
+
+        try {
+            // Cart'ı yeniden yükle ve kalan item sayısını kontrol et
+            log.info("🔄 Cart durumu kontrol ediliyor...");
+            Optional<Cart> updatedCart = cartRepository.findByUser(user);
+            if (updatedCart.isPresent()) {
+                List<CartLine> remainingItems = cartItemRepository.findByCartOrderById(updatedCart.get());
+                log.info("📊 Silme sonrası kalan item sayısı: {}", remainingItems.size());
+
+                if (!remainingItems.isEmpty()) {
+                    // Hala ürün var, Elasticsearch'i güncelle
+                    log.info("🔄 Elasticsearch güncelleniyor (sepet boş değil)...");
+                    cartSearchService.indexCart(updatedCart.get());
+                    log.info("✅ Sepet Elasticsearch'te başarıyla güncellendi");
+                } else {
+                    // Sepet boş kaldı, Elasticsearch'ten sil
+                    log.info("🗑️ Sepet boş, Elasticsearch'ten siliniyor...");
+                    cartSearchService.deleteByUserId(user.getId());
+                    log.info("✅ Boş sepet Elasticsearch'ten silindi");
+                }
+            } else {
+                // Cart silinmiş, Elasticsearch'ten de sil
+                log.info("❌ Cart bulunamadı, Elasticsearch'ten siliniyor...");
+                cartSearchService.deleteByUserId(user.getId());
+                log.info("✅ Sepet Elasticsearch'ten silindi (cart bulunamadı)");
+            }
+        } catch (Exception e) {
+            log.error("❌ Sepet Elasticsearch'te güncellenemedi: {}", e.getMessage(), e);
+            throw new RuntimeException("Elasticsearch güncelleme hatası: " + e.getMessage());
+        }
+
+        log.info("🎉 removeFromCart işlemi tamamlandı!");
+    }
+
+    public void updateCartQuantity(User user, Long productId, int newQuantity) {
+        log.info("🔢 Sepet miktarı güncelleniyor kullanıcı: {}, ürün: {}, yeni miktar: {}",
+                user.getUsername(), productId, newQuantity);
+
+        if (newQuantity <= 0) {
+            log.info("⚠️ Yeni miktar <= 0, ürün siliniyor");
+            removeFromCart(user, productId);
+            return;
+        }
+
+        Cart cart = cartRepository.findByUser(user).orElseThrow(() -> new RuntimeException("Sepet Bulunamadı."));
+        log.info("📦 Cart bulundu: ID={}, User={}", cart.getId(), cart.getUser().getUsername());
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Ürün Bulunamadı."));
+        log.info("🛍️ Product bulundu: ID={}, Name={}", product.getId(), product.getName());
 
         CartLine cartItem = cartItemRepository.findByCartAndProduct(cart, product)
                 .orElseThrow(() -> new RuntimeException("Ürün Sepette Değil."));
 
-        cartItemRepository.delete(cartItem);
+        log.info("📋 CartLine güncelleniyor: {} -> {} (ID: {})", cartItem.getQuantity(), newQuantity, cartItem.getId());
+        cartItem.setQuantity(newQuantity);
+        cartItemRepository.save(cartItem);
+        log.info("✅ CartLine veritabanında güncellendi");
 
         try {
+            log.info("🔄 Elasticsearch güncelleniyor...");
             Optional<Cart> updatedCart = cartRepository.findByUser(user);
             if (updatedCart.isPresent()) {
                 cartSearchService.indexCart(updatedCart.get());
-                log.info("Sepet Elasticsearch'te başarıyla güncellendi");
+                log.info("✅ Sepet miktarı güncellendi ve Elasticsearch'te indexlendi");
             } else {
-                cartSearchService.deleteByUserId(user.getId());
-                log.info("Boş sepet Elasticsearch'ten silindi");
+                log.error("❌ Güncellenmiş sepet bulunamadı!");
             }
         } catch (Exception e) {
-            log.error("Sepet Elasticsearch'te güncellenemedi: {}", e.getMessage());
+            log.error("❌ Sepet Elasticsearch'te güncellenemedi: {}", e.getMessage(), e);
+            throw new RuntimeException("Elasticsearch güncelleme hatası: " + e.getMessage());
         }
+
+        log.info("🎉 updateCartQuantity işlemi tamamlandı!");
+    }
+
+    public void clearCart(User user) {
+        log.info("🗑️ Sepet temizleniyor kullanıcı: {}", user.getUsername());
+
+        Optional<Cart> cart = cartRepository.findByUser(user);
+        if (cart.isPresent()) {
+            log.info("📦 Cart bulundu: ID={}", cart.get().getId());
+
+            List<CartLine> cartItems = cartItemRepository.findByCart(cart.get());
+            log.info("📋 Silinecek cart item sayısı: {}", cartItems.size());
+
+            cartItemRepository.deleteAllByCart(cart.get());
+            log.info("✅ Tüm cart item'lar silindi");
+
+            cartRepository.delete(cart.get());
+            log.info("✅ Cart silindi");
+
+            try {
+                log.info("🔄 Elasticsearch'ten sepet siliniyor...");
+                cartSearchService.deleteByUserId(user.getId());
+                log.info("✅ Sepet başarıyla temizlendi ve Elasticsearch'ten silindi");
+            } catch (Exception e) {
+                log.error("❌ Sepet Elasticsearch'ten silinemedi: {}", e.getMessage());
+            }
+        } else {
+            log.info("⚠️ Temizlenecek sepet bulunamadı kullanıcı: {}", user.getUsername());
+        }
+
+        log.info("🎉 clearCart işlemi tamamlandı!");
     }
 }
